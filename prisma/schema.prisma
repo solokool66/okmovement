@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ==========================================
+// 1. GEOGRAPHIC HIERARCHY (INEC STRUCTURE)
+// ==========================================
+
+model State {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  lgas      Lga[]
+  admins    Admin[]  // Admins scoped to this State
+}
+
+model Lga {
+  id        String   @id @default(cuid())
+  name      String
+  stateId   String
+  state     State    @relation(fields: [stateId], references: [id], onDelete: Cascade)
+  wards     Ward[]
+  admins    Admin[]  // Admins scoped to this LGA
+
+  @@unique([name, stateId]) // Ensures LGA names are unique per State
+}
+
+model Ward {
+  id        String   @id @default(cuid())
+  name      String
+  lgaId     String
+  lga       Lga      @relation(fields: [lgaId], references: [id], onDelete: Cascade)
+  pus       PollingUnit[]
+  admins    Admin[]  // Admins scoped to this Ward
+
+  @@unique([name, lgaId]) // Ensures Ward names are unique per LGA
+}
+
+model PollingUnit {
+  id              String   @id @default(cuid())
+  name            String
+  code            String   @unique // Official INEC Code e.g., 32-11-04-012
+  wardId          String
+  ward            Ward     @relation(fields: [wardId], references: [id], onDelete: Cascade)
+  
+  target_capacity Int      @default(5)  // Maximum agents allowed in this PU
+  current_count   Int      @default(0)  // Current registered agents (For atomic locking)
+
+  registrations   Registration[]
+  results         Result[]
+  incidents       Incident[]
+}
+
+// ==========================================
+// 2. USER REGISTRATIONS
+// ==========================================
+
+model Registration {
+  id              String   @id @default(cuid())
+  referenceId     String   @unique @default(uuid())
+  
+  fullName        String
+  phone           String   @unique
+  email           String?
+  hasPvc          Boolean  @default(false)
+  role            String   @default("Agent") // e.g., Agent, Coordinator, Canvasser
+
+  isVerified      Boolean  @default(false) // Verified via Termii OTP
+  consent         Boolean  @default(true)
+
+  pollingUnitId   String
+  pollingUnit     PollingUnit @relation(fields: [pollingUnitId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ==========================================
+// 3. ADMINISTRATIVE HIERARCHY (RBAC)
+// ==========================================
+
+enum AdminRole {
+  SUPER_ADMIN
+  NATIONAL
+  STATE
+  LGA
+  WARD
+}
+
+model Admin {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  passwordHash  String
+  role          AdminRole @default(STATE)
+
+  // Geographic Scopes
+  // If an Admin is a STATE admin, they will only have stateId set.
+  // If they are an LGA admin, they will have stateId and lgaId set.
+  stateId       String?
+  state         State?    @relation(fields: [stateId], references: [id])
+  
+  lgaId         String?
+  lga           Lga?      @relation(fields: [lgaId], references: [id])
+  
+  wardId        String?
+  ward          Ward?     @relation(fields: [wardId], references: [id])
+
+  auditLogs     AuditLog[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// ==========================================
+// 4. SECURITY & AUDITING
+// ==========================================
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  adminId       String
+  admin         Admin    @relation(fields: [adminId], references: [id])
+  action        String   // e.g., "EXPORT_DATA", "DELETE_REGISTRATION"
+  targetRecord  String?  // The ID of the record affected
+  details       Json?    // Any additional payload
+  createdAt     DateTime @default(now())
+}
+
+// ==========================================
+// 5. PVT RESULTS
+// ==========================================
+
+model Result {
+  id              String   @id @default(cuid())
+  phone           String
+  
+  puId            String
+  pollingUnit     PollingUnit @relation(fields: [puId], references: [id])
+  
+  stateId         String
+  lgaId           String
+  wardId          String
+  
+  okVotes         Int      @default(0)
+  oppAVotes       Int      @default(0)
+  oppBVotes       Int      @default(0)
+  opponents       Json?
+  
+  image           String?  @db.Text
+  totalAccredited Int      @default(0)
+  
+  status          String   @default("PENDING_VERIFICATION")
+  createdAt       DateTime @default(now())
+}
+
+// ==========================================
+// 6. INCIDENTS (SOS)
+// ==========================================
+
+model Incident {
+  id              String   @id @default(cuid())
+  phone           String
+  
+  puId            String
+  pollingUnit     PollingUnit @relation(fields: [puId], references: [id])
+  
+  stateId         String
+  lgaId           String
+  wardId          String
+  
+  incidentType    String
+  description     String   @db.Text
+  image           String?  @db.Text
+  
+  status          String   @default("UNRESOLVED")
+  createdAt       DateTime @default(now())
+}
