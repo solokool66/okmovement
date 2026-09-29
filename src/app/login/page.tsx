@@ -13,9 +13,17 @@ export default function AgentLogin() {
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState("");
   const [channel, setChannel] = useState("whatsapp");
+  const [resendTimer, setResendTimer] = useState(120);
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  React.useEffect(() => {
+    if (step === 2 && resendTimer > 0) {
+      const timerId = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timerId);
+    }
+  }, [step, resendTimer]);
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,18 +32,43 @@ export default function AgentLogin() {
     setErrorMsg("");
 
     try {
-      // Send OTP (API now validates if user exists)
       const res = await fetch('/api/otp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, channel, isLogin: true })
+        body: JSON.stringify({ phone, channel: "whatsapp", isLogin: true })
       });
       
       const data = await res.json();
       if (res.ok) {
         setStep(2);
+        setResendTimer(120);
+        setChannel("whatsapp");
       } else {
         setErrorMsg(data.error || "Failed to send OTP");
+      }
+    } catch (err) {
+      setErrorMsg("Network error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendSms = async () => {
+    setLoading(true);
+    setErrorMsg("");
+    try {
+      const res = await fetch('/api/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, channel: "sms", isLogin: true })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setResendTimer(120);
+        setChannel("sms");
+        alert("OTP sent via SMS!");
+      } else {
+        setErrorMsg(data.error || "Failed to resend OTP via SMS");
       }
     } catch (err) {
       setErrorMsg("Network error");
@@ -58,7 +91,6 @@ export default function AgentLogin() {
       
       const data = await res.json();
       if (res.ok) {
-        // Save auth to localStorage and redirect
         localStorage.setItem("ok_agent_phone", phone);
         router.push("/portal");
       } else {
@@ -95,24 +127,13 @@ export default function AgentLogin() {
                   value={phone} onChange={(e) => setPhone(e.target.value)} required 
                   className="text-lg py-6" disabled={loading}
                 />
+                <p className="text-xs text-gray-500 mt-2">
+                  We will send a one-time password (OTP) to verify this number.
+                </p>
                 {errorMsg && <p className="text-sm text-red-500 mt-2">{errorMsg}</p>}
               </div>
 
-              <div className="space-y-2 pt-2 pb-4">
-                <Label>Receive OTP via:</Label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer p-3 border rounded-lg hover:bg-gray-50 flex-1">
-                    <input type="radio" name="channel" value="sms" checked={channel === 'sms'} onChange={() => setChannel('sms')} className="text-green-600" />
-                    <span className="font-medium text-sm">SMS Message</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer p-3 border rounded-lg hover:bg-gray-50 flex-1 border-green-200 bg-green-50/30">
-                    <input type="radio" name="channel" value="whatsapp" checked={channel === 'whatsapp'} onChange={() => setChannel('whatsapp')} className="text-green-600" />
-                    <span className="font-medium text-sm text-green-800">WhatsApp</span>
-                  </label>
-                </div>
-              </div>
-
-              <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700 py-6 text-lg">
+              <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700 py-6 text-lg mt-4">
                 {loading ? "Sending..." : "Send Login Code"}
               </Button>
             </form>
@@ -127,12 +148,30 @@ export default function AgentLogin() {
                   value={otp} onChange={(e) => setOtp(e.target.value)} required 
                   className="text-center text-2xl tracking-widest py-6" maxLength={6} disabled={loading}
                 />
-                <p className="text-xs text-gray-500 text-center">
-                  Code sent to {phone}. <span className="text-green-600 font-medium cursor-pointer" onClick={() => setStep(1)}>Edit</span>
+                <p className="text-xs text-gray-500 text-center mt-2">
+                  Code sent via <span className="font-bold text-gray-700">{channel === 'whatsapp' ? 'WhatsApp' : 'SMS'}</span> to {phone}. <span className="text-green-600 font-medium cursor-pointer ml-1" onClick={() => setStep(1)}>Edit</span>
                 </p>
                 {errorMsg && <p className="text-sm text-red-500 text-center">{errorMsg}</p>}
+
+                <div className="pt-2 text-center">
+                  {resendTimer > 0 ? (
+                    <p className="text-sm text-gray-400">
+                      Didn't get the code? Resend via SMS in {resendTimer}s
+                    </p>
+                  ) : (
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={handleResendSms} 
+                      disabled={loading}
+                      className="w-full text-sm mt-2 border-gray-300 hover:bg-gray-50 text-gray-700"
+                    >
+                      Resend via SMS
+                    </Button>
+                  )}
+                </div>
               </div>
-              <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700 py-6 text-lg">
+              <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700 py-6 text-lg mt-2">
                 {loading ? "Verifying..." : "Secure Login"}
               </Button>
             </form>
