@@ -50,10 +50,6 @@ model PollingUnit {
   
   target_capacity Int      @default(5)  // Maximum agents allowed in this PU
   current_count   Int      @default(0)  // Current registered agents (For atomic locking)
-
-  registrations   Registration[]
-  results         Result[]
-  incidents       Incident[]
 }
 
 // ==========================================
@@ -68,13 +64,15 @@ model Registration {
   phone           String   @unique
   email           String?
   hasPvc          Boolean  @default(false)
-  role            String   @default("Agent") // e.g., Agent, Coordinator, Canvasser
+  role            String   @default("Agent")
 
-  isVerified      Boolean  @default(false) // Verified via Termii OTP
+  isVerified      Boolean  @default(false)
   consent         Boolean  @default(true)
 
+  stateId         String
+  lgaId           String
+  wardId          String
   pollingUnitId   String
-  pollingUnit     PollingUnit @relation(fields: [pollingUnitId], references: [id])
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -139,7 +137,6 @@ model Result {
   phone           String
   
   puId            String
-  pollingUnit     PollingUnit @relation(fields: [puId], references: [id])
   
   stateId         String
   lgaId           String
@@ -166,7 +163,6 @@ model Incident {
   phone           String
   
   puId            String
-  pollingUnit     PollingUnit @relation(fields: [puId], references: [id])
   
   stateId         String
   lgaId           String

@@ -25,6 +25,9 @@ export async function POST(request: Request) {
       data: {
         fullName,
         phone,
+        stateId,
+        lgaId,
+        wardId,
         pollingUnitId: puId,
         isVerified: true,
         role: "Agent"

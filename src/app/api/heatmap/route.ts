@@ -8,23 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const registrations = await prisma.registration.findMany({
-      include: {
-        pollingUnit: {
-          include: {
-            ward: {
-              include: {
-                lga: {
-                  include: {
-                    state: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    });
+    const registrations = await prisma.registration.findMany();
 
     const inecPath = path.join(process.cwd(), 'prisma', 'inec_data.json');
     let statesData: any[] = [];
@@ -35,7 +19,7 @@ export async function GET() {
     const heatmapData = statesData.map(state => {
       // Find agents belonging to this state
       const stateAgents = registrations.filter(r => 
-        r.pollingUnit?.ward?.lga?.state?.name.toLowerCase() === state.state.toLowerCase()
+        r.stateId.toLowerCase() === state.state.toLowerCase()
       );
       
       let totalLgas = state.lgas.length;
@@ -75,7 +59,7 @@ export async function GET() {
 
     heatmapData.sort((a, b) => b.totalAgents - a.totalAgents);
 
-    const activeWards = new Set(registrations.map(a => a.pollingUnit?.wardId).filter(Boolean)).size;
+    const activeWards = new Set(registrations.map(a => a.wardId).filter(Boolean)).size;
     const coveredPus = new Set(registrations.map(a => a.pollingUnitId)).size;
 
     return NextResponse.json({
