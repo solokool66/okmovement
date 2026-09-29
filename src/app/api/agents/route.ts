@@ -1,61 +1,45 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { PrismaClient } from '@prisma/client';
 
+const prisma = new PrismaClient();
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const dbPath = path.join(process.cwd(), 'prisma', 'agents.json');
-    let agents: any[] = [];
-    if (fs.existsSync(dbPath)) {
-      agents = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
-    }
-
-    const inecPath = path.join(process.cwd(), 'prisma', 'inec_data.json');
-    let statesData: any[] = [];
-    if (fs.existsSync(inecPath)) {
-      statesData = JSON.parse(fs.readFileSync(inecPath, 'utf-8'));
-    }
-
-    // Resolve IDs to human-readable names
-    const enrichedAgents = agents.map(agent => {
-      let stateName = agent.stateId;
-      let lgaName = agent.lgaId;
-      let wardName = agent.wardId;
-      let puName = agent.puId;
-
-      const stateObj = statesData.find((s: any) => s.state.toLowerCase() === agent.stateId);
-      if (stateObj) {
-        stateName = stateObj.state;
-        const lgaObj = stateObj.lgas.find((l: any) => l.lga.toLowerCase().replace(/[\s/]/g, '-') === agent.lgaId);
-        if (lgaObj) {
-          lgaName = lgaObj.lga;
-          const wardObj = lgaObj.wards.find((w: any) => w.ward.toLowerCase().replace(/[\s/]/g, '-') === agent.wardId);
-          if (wardObj) {
-            wardName = wardObj.ward;
-            const puObj = wardObj.polling_units.find((p: any) => p.code === agent.puId);
-            if (puObj) {
-              puName = `${puObj.name} (${puObj.code})`;
+    const registrations = await prisma.registration.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        pollingUnit: {
+          include: {
+            ward: {
+              include: {
+                lga: {
+                  include: {
+                    state: true
+                  }
+                }
+              }
             }
           }
         }
       }
-
-      return {
-        ...agent,
-        stateName,
-        lgaName,
-        wardName,
-        puName
-      };
     });
 
-    // Sort by newest first
-    enrichedAgents.sort((a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime());
+    const enrichedAgents = registrations.map(reg => ({
+      fullName: reg.fullName,
+      phone: reg.phone,
+      stateName: reg.pollingUnit?.ward?.lga?.state?.name || "Unknown",
+      lgaName: reg.pollingUnit?.ward?.lga?.name || "Unknown",
+      wardName: reg.pollingUnit?.ward?.name || "Unknown",
+      puName: reg.pollingUnit ? `${reg.pollingUnit.name} (${reg.pollingUnit.code})` : "Unknown",
+      status: reg.isVerified ? "Verified" : "Pending",
+      registeredAt: reg.createdAt,
+      role: reg.role
+    }));
 
     return NextResponse.json(enrichedAgents);
   } catch (error) {
+    console.error(error);
     return NextResponse.json({ error: "Failed to load agents" }, { status: 500 });
   }
 }
