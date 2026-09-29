@@ -8,6 +8,7 @@ export default function LiveCollation() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedResult, setSelectedResult] = useState<any>(null);
+  const [isZoomed, setIsZoomed] = useState(false);
 
   useEffect(() => {
     fetch('/api/results')
@@ -18,8 +19,6 @@ export default function LiveCollation() {
 
   if (loading) return <div className="p-8">Loading Live Results...</div>;
   if (!data || data.error) return <div className="p-8 text-red-500">Failed to load results</div>;
-
-  const [isZoomed, setIsZoomed] = useState(false);
   
   const totalVotesCast = (data.summary.totalOk || 0) + (data.summary.totalOppA || 0) + (data.summary.totalOppB || 0) + (data.summary.totalOppC || 0);
   const getPercentage = (votes: number) => totalVotesCast > 0 ? ((votes / totalVotesCast) * 100).toFixed(1) : "0.0";
