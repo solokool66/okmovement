@@ -1,16 +1,30 @@
 import { NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 
+const prisma = new PrismaClient();
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const dbPath = path.join(process.cwd(), 'prisma', 'agents.json');
-    let agents: any[] = [];
-    if (fs.existsSync(dbPath)) {
-      agents = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
-    }
+    const registrations = await prisma.registration.findMany({
+      include: {
+        pollingUnit: {
+          include: {
+            ward: {
+              include: {
+                lga: {
+                  include: {
+                    state: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
 
     const inecPath = path.join(process.cwd(), 'prisma', 'inec_data.json');
     let statesData: any[] = [];
@@ -19,12 +33,15 @@ export async function GET() {
     }
 
     const heatmapData = statesData.map(state => {
-      const stateAgents = agents.filter(a => a.stateId === state.state.toLowerCase());
+      // Find agents belonging to this state
+      const stateAgents = registrations.filter(r => 
+        r.pollingUnit?.ward?.lga?.state?.name.toLowerCase() === state.state.toLowerCase()
+      );
       
       let totalLgas = state.lgas.length;
       let totalAgents = stateAgents.length;
       let totalPUs = 0;
-      let coveredPUs = new Set(stateAgents.map(a => a.puId)).size;
+      let coveredPUs = new Set(stateAgents.map(a => a.pollingUnitId)).size;
 
       state.lgas.forEach((lga: any) => {
         lga.wards.forEach((ward: any) => {
@@ -56,25 +73,16 @@ export async function GET() {
       };
     });
 
-    // Sort so states with the most agents are at the top!
     heatmapData.sort((a, b) => b.totalAgents - a.totalAgents);
 
-    // Calculate Pending Verification
-    const otpsPath = path.join(process.cwd(), 'prisma', 'otps.json');
-    let pendingVerification = 0;
-    if (fs.existsSync(otpsPath)) {
-      const otps = JSON.parse(fs.readFileSync(otpsPath, 'utf-8'));
-      // Count unique phone numbers in otps.json that are NOT in agents.json
-      const allOtpPhones = new Set(Object.keys(otps));
-      agents.forEach(a => allOtpPhones.delete(a.phone));
-      pendingVerification = allOtpPhones.size;
-    }
+    const activeWards = new Set(registrations.map(a => a.pollingUnit?.wardId).filter(Boolean)).size;
+    const coveredPus = new Set(registrations.map(a => a.pollingUnitId)).size;
 
     return NextResponse.json({
-      totalRegistered: agents.length,
-      activeWards: new Set(agents.map(a => a.wardId)).size,
-      coveredPus: new Set(agents.map(a => a.puId)).size,
-      pendingVerification,
+      totalRegistered: registrations.length,
+      activeWards,
+      coveredPus,
+      pendingVerification: 0,
       heatmap: heatmapData
     });
   } catch (error) {

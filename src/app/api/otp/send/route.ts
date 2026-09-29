@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { sendSMS } from '@/lib/sms';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 // Simple in-memory store for OTPs during development to avoid Redis requirement
 const otpStore = new Map<string, { otp: string, expires: number }>();
@@ -13,20 +16,14 @@ export async function POST(request: Request) {
     }
 
     // Check if agent is already registered BEFORE sending OTP
-    const fs = require('fs');
-    const path = require('path');
-    const dbPath = path.join(process.cwd(), 'prisma', 'agents.json');
-    if (fs.existsSync(dbPath)) {
-      const agents = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
-      const isAgent = agents.find((a: any) => a.phone === phone);
+    const isAgent = await prisma.registration.findUnique({
+      where: { phone }
+    });
       
-      if (!isLogin && isAgent) {
-        return NextResponse.json({ error: "This phone number is already registered. Please login instead." }, { status: 409 });
-      }
-      if (isLogin && !isAgent) {
-        return NextResponse.json({ error: "No agent found with this number." }, { status: 404 });
-      }
-    } else if (isLogin) {
+    if (!isLogin && isAgent) {
+      return NextResponse.json({ error: "This phone number is already registered. Please login instead." }, { status: 409 });
+    }
+    if (isLogin && !isAgent) {
       return NextResponse.json({ error: "No agent found with this number." }, { status: 404 });
     }
 
