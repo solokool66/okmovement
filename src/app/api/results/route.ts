@@ -62,19 +62,41 @@ export async function POST(request: Request) {
   }
 }
 
+let cachedStatesData: any[] | null = null;
+
 export async function GET() {
   try {
     const results = await prisma.result.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        phone: true,
+        puId: true,
+        stateId: true,
+        lgaId: true,
+        wardId: true,
+        okVotes: true,
+        oppAVotes: true,
+        oppBVotes: true,
+        opponents: true,
+        totalAccredited: true,
+        status: true,
+        createdAt: true,
+        image: false // Exclude image from main list to prevent massive JSON payloads!
+      }
     });
 
-    const fs = require('fs');
-    const path = require('path');
-    const inecPath = path.join(process.cwd(), 'prisma', 'inec_data.json');
-    let statesData: any[] = [];
-    if (fs.existsSync(inecPath)) {
-      statesData = JSON.parse(fs.readFileSync(inecPath, 'utf-8'));
+    if (!cachedStatesData) {
+      const fs = require('fs');
+      const path = require('path');
+      const inecPath = path.join(process.cwd(), 'prisma', 'inec_data.json');
+      if (fs.existsSync(inecPath)) {
+        cachedStatesData = JSON.parse(fs.readFileSync(inecPath, 'utf-8'));
+      } else {
+        cachedStatesData = [];
+      }
     }
+    const statesData = cachedStatesData || [];
 
     let totalOk = 0;
     let totalOppA = 0;

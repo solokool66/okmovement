@@ -76,11 +76,16 @@ export async function DELETE(request: Request, props: { params: Promise<{ phone:
   try {
     const params = await props.params;
     
+    // Also delete any results submitted by this agent
+    await prisma.result.deleteMany({
+      where: { phone: params.phone }
+    });
+
     await prisma.registration.delete({
       where: { phone: params.phone }
     });
 
-    return NextResponse.json({ success: true, message: "Agent deleted successfully" });
+    return NextResponse.json({ success: true, message: "Agent and associated results deleted successfully" });
   } catch (error) {
     return NextResponse.json({ error: "Agent not found or Internal Error" }, { status: 500 });
   }

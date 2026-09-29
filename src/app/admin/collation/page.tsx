@@ -48,6 +48,24 @@ export default function LiveCollation() {
     }
   });
 
+  const [modalImage, setModalImage] = useState<string | null>(null);
+  const [loadingImage, setLoadingImage] = useState(false);
+
+  useEffect(() => {
+    if (selectedResult && !selectedResult.imageLoaded) {
+      setLoadingImage(true);
+      fetch(`/api/results/${selectedResult.id}`)
+        .then(res => res.json())
+        .then(data => {
+          setModalImage(data.image || null);
+          setLoadingImage(false);
+        })
+        .catch(() => setLoadingImage(false));
+    } else {
+      setModalImage(null);
+    }
+  }, [selectedResult]);
+
   return (
     <div className="p-8 space-y-8 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center">
@@ -219,10 +237,15 @@ export default function LiveCollation() {
 
               <div>
                 <p className="text-sm font-bold text-gray-500 uppercase mb-3">Result Sheet Image</p>
-                {selectedResult.image ? (
+                {loadingImage ? (
+                  <div className="p-12 text-center bg-gray-50 border rounded-lg flex flex-col items-center justify-center">
+                    <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                    <p className="text-gray-500 font-medium">Loading high-res image...</p>
+                  </div>
+                ) : modalImage ? (
                   <div className={`cursor-pointer transition-all duration-300 ${isZoomed ? 'fixed inset-0 z-[100] bg-black/90 p-4 flex items-center justify-center' : ''}`} onClick={() => setIsZoomed(!isZoomed)}>
                     <img 
-                      src={selectedResult.image} 
+                      src={modalImage} 
                       alt="Result Sheet" 
                       className={`${isZoomed ? 'max-w-full max-h-full object-contain' : 'w-full rounded-lg border shadow-sm hover:opacity-90'}`} 
                     />
