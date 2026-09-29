@@ -1,6 +1,6 @@
 export async function sendSMS(phone: string, message: string, channel: string = "sms") {
   const provider = process.env.PRIMARY_SMS_PROVIDER || "SMART_SMS";
-  const waProvider = process.env.WHATSAPP_PROVIDER || "TERMII";
+  const waProvider = process.env.WHATSAPP_PROVIDER || "FREE_WHATSAPP";
 
   // If WhatsApp is requested, route to the configured WhatsApp provider
   if (channel === "whatsapp") {
@@ -159,7 +159,7 @@ async function sendViaSendchamp(phone: string, message: string) {
 
 async function sendViaFreeWhatsApp(phone: string, message: string) {
   try {
-    const response = await fetch("http://127.0.0.1:3005/api/send-whatsapp", {
+    const response = await fetch("https://whatsapp-bot-agqz.onrender.com/api/send-whatsapp", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
