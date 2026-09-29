@@ -177,7 +177,7 @@ async function sendViaFreeWhatsApp(phone: string, message: string) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ phone, message }),
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(8000) // Increased to 8s (Vercel max is 10s on hobby)
     });
 
     const data = await response.json();
@@ -188,8 +188,18 @@ async function sendViaFreeWhatsApp(phone: string, message: string) {
       console.error(`[FREE WHATSAPP ERROR] ${data.error}`);
       return { success: false, provider: "FREE_WHATSAPP", error: data.error };
     }
-  } catch (error) {
-    console.error("[FREE WHATSAPP SERVER DOWN] Is the microservice running on port 3005?");
+  } catch (error: any) {
+    console.error("[FREE WHATSAPP SERVER DOWN OR TIMEOUT]:", error);
+    
+    // Check if it's a timeout error (Render cold start)
+    if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+      return { 
+        success: false, 
+        provider: "FREE_WHATSAPP", 
+        error: "WhatsApp Server is waking up (cold start). Please click send again in 10 seconds." 
+      };
+    }
+
     return { success: false, provider: "FREE_WHATSAPP", error: "Network error with Free WhatsApp microservice" };
   }
 }
