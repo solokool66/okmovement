@@ -35,7 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2">
+        <nav className="flex-1 px-4 space-y-2 overflow-y-auto pb-4">
           <Link href="/admin" className={getLinkClass("/admin")}>
             <LayoutDashboard className="h-5 w-5" />
             <span className="font-medium text-sm">Dashboard</span>
