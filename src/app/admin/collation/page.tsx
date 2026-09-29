@@ -21,7 +21,7 @@ export default function LiveCollation() {
 
   const [isZoomed, setIsZoomed] = useState(false);
   
-  const totalVotesCast = data.summary.totalOk + data.summary.totalOppA + data.summary.totalOppB + data.summary.totalOppC;
+  const totalVotesCast = (data.summary.totalOk || 0) + (data.summary.totalOppA || 0) + (data.summary.totalOppB || 0) + (data.summary.totalOppC || 0);
   const getPercentage = (votes: number) => totalVotesCast > 0 ? ((votes / totalVotesCast) * 100).toFixed(1) : "0.0";
 
   return (
@@ -40,38 +40,38 @@ export default function LiveCollation() {
             <CardTitle className="text-sm font-bold text-green-800">OK Movement</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-green-700">{data.summary.totalOk.toLocaleString()}</div>
-            <p className="text-sm font-bold text-green-600 mt-1">{getPercentage(data.summary.totalOk)}%</p>
+            <div className="text-3xl font-black text-green-700">{(data.summary.totalOk || 0).toLocaleString()}</div>
+            <p className="text-sm font-bold text-green-600 mt-1">{getPercentage(data.summary.totalOk || 0)}%</p>
           </CardContent>
         </Card>
 
         <Card className="border-t-4 border-t-red-600 shadow-sm bg-red-50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold text-red-800">{data.summary.oppAName}</CardTitle>
+            <CardTitle className="text-sm font-bold text-red-800">{data.summary.oppAName || "Opponent A"}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-red-700">{data.summary.totalOppA.toLocaleString()}</div>
-            <p className="text-sm font-bold text-red-600 mt-1">{getPercentage(data.summary.totalOppA)}%</p>
+            <div className="text-3xl font-black text-red-700">{(data.summary.totalOppA || 0).toLocaleString()}</div>
+            <p className="text-sm font-bold text-red-600 mt-1">{getPercentage(data.summary.totalOppA || 0)}%</p>
           </CardContent>
         </Card>
 
         <Card className="border-t-4 border-t-blue-600 shadow-sm bg-blue-50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold text-blue-800">{data.summary.oppBName}</CardTitle>
+            <CardTitle className="text-sm font-bold text-blue-800">{data.summary.oppBName || "Opponent B"}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-blue-700">{data.summary.totalOppB.toLocaleString()}</div>
-            <p className="text-sm font-bold text-blue-600 mt-1">{getPercentage(data.summary.totalOppB)}%</p>
+            <div className="text-3xl font-black text-blue-700">{(data.summary.totalOppB || 0).toLocaleString()}</div>
+            <p className="text-sm font-bold text-blue-600 mt-1">{getPercentage(data.summary.totalOppB || 0)}%</p>
           </CardContent>
         </Card>
         
         <Card className="border-t-4 border-t-gray-600 shadow-sm bg-gray-50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold text-gray-800">{data.summary.oppCName}</CardTitle>
+            <CardTitle className="text-sm font-bold text-gray-800">{data.summary.oppCName || "Opponent C"}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-gray-700">{data.summary.totalOppC.toLocaleString()}</div>
-            <p className="text-sm font-bold text-gray-600 mt-1">{getPercentage(data.summary.totalOppC)}%</p>
+            <div className="text-3xl font-black text-gray-700">{(data.summary.totalOppC || 0).toLocaleString()}</div>
+            <p className="text-sm font-bold text-gray-600 mt-1">{getPercentage(data.summary.totalOppC || 0)}%</p>
           </CardContent>
         </Card>
 
@@ -80,7 +80,7 @@ export default function LiveCollation() {
             <CardTitle className="text-sm font-bold text-indigo-800">PUs Submitted</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-indigo-900">{data.summary.totalPUsSubmitted.toLocaleString()}</div>
+            <div className="text-3xl font-black text-indigo-900">{(data.summary.totalPUsSubmitted || 0).toLocaleString()}</div>
             <p className="text-sm font-bold text-indigo-600 mt-1">Total PUs Verified</p>
           </CardContent>
         </Card>
@@ -97,9 +97,9 @@ export default function LiveCollation() {
                 <tr>
                   <th className="px-6 py-4">Polling Unit</th>
                   <th className="px-6 py-4 text-green-700">OK Votes</th>
-                  <th className="px-6 py-4 text-red-700">{data.summary.oppAName}</th>
-                  <th className="px-6 py-4 text-blue-700">{data.summary.oppBName}</th>
-                  <th className="px-6 py-4 text-gray-700">{data.summary.oppCName}</th>
+                  <th className="px-6 py-4 text-red-700">{data.summary.oppAName || "Opponent A"}</th>
+                  <th className="px-6 py-4 text-blue-700">{data.summary.oppBName || "Opponent B"}</th>
+                  <th className="px-6 py-4 text-gray-700">{data.summary.oppCName || "Opponent C"}</th>
                   <th className="px-6 py-4">Time</th>
                   <th className="px-6 py-4 text-right">Action</th>
                 </tr>
@@ -110,18 +110,18 @@ export default function LiveCollation() {
                 ) : (
                   data.results.slice().map((r: any, idx: number) => (
                     <tr key={idx} className="bg-white border-b hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900">{r.puName}</td>
-                      <td className="px-6 py-4 font-bold text-green-600">{r.okVotes}</td>
+                      <td className="px-6 py-4 font-medium text-gray-900">{r.puName || r.puId}</td>
+                      <td className="px-6 py-4 font-bold text-green-600">{r.okVotes || 0}</td>
                       <td className="px-6 py-4 font-bold text-red-600">
-                        {r.opponents && r.opponents[0] ? r.opponents[0].votes : r.oppAVotes}
+                        {r.opponents && r.opponents[0] ? r.opponents[0].votes : (r.oppAVotes || 0)}
                       </td>
                       <td className="px-6 py-4 font-bold text-blue-600">
-                        {r.opponents && r.opponents[1] ? r.opponents[1].votes : r.oppBVotes}
+                        {r.opponents && r.opponents[1] ? r.opponents[1].votes : (r.oppBVotes || 0)}
                       </td>
                       <td className="px-6 py-4 font-bold text-gray-600">
                         {r.opponents && r.opponents[2] ? r.opponents[2].votes : 0}
                       </td>
-                      <td className="px-6 py-4 text-xs">{new Date(r.timestamp).toLocaleTimeString()}</td>
+                      <td className="px-6 py-4 text-xs">{r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : "N/A"}</td>
                       <td className="px-6 py-4 text-right">
                         <button 
                           onClick={() => setSelectedResult(r)}
