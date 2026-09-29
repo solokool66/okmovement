@@ -11,7 +11,8 @@ const RegistrationWizard = () => {
   const [step, setStep] = useState(1);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const [channel, setChannel] = useState("sms");
+  const [channel, setChannel] = useState("whatsapp");
+  const [resendTimer, setResendTimer] = useState(120);
   const [otp, setOtp] = useState("");
   
   // Data States
@@ -70,6 +71,13 @@ const RegistrationWizard = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  useEffect(() => {
+    if (step === 2 && resendTimer > 0) {
+      const timerId = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timerId);
+    }
+  }, [step, resendTimer]);
+
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim()) {
@@ -83,14 +91,40 @@ const RegistrationWizard = () => {
       const res = await fetch('/api/otp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, channel })
+        body: JSON.stringify({ phone, channel: "whatsapp" }) // Always default to WhatsApp first
       });
       
       const data = await res.json();
       if (res.ok) {
         setStep(2);
+        setResendTimer(120);
+        setChannel("whatsapp");
       } else {
         setErrorMsg(data.error || "Failed to send OTP");
+      }
+    } catch (err) {
+      setErrorMsg("Network error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendSms = async () => {
+    setLoading(true);
+    setErrorMsg("");
+    try {
+      const res = await fetch('/api/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, channel: "sms" })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setResendTimer(120);
+        setChannel("sms");
+        alert("OTP sent via SMS!");
+      } else {
+        setErrorMsg(data.error || "Failed to resend OTP via SMS");
       }
     } catch (err) {
       setErrorMsg("Network error");
@@ -189,22 +223,7 @@ const RegistrationWizard = () => {
                 </p>
                 {errorMsg && <p className="text-sm text-red-500">{errorMsg}</p>}
               </div>
-              <div className="space-y-2 pt-2 pb-4">
-                <Label>Receive OTP via:</Label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer p-3 border rounded-lg hover:bg-gray-50 flex-1">
-                    <input type="radio" name="channel" value="sms" checked={channel === 'sms'} onChange={() => setChannel('sms')} className="text-green-600" />
-                    <span className="font-medium text-sm">SMS Message</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer p-3 border rounded-lg hover:bg-gray-50 flex-1 border-green-200 bg-green-50/30">
-                    <input type="radio" name="channel" value="whatsapp" checked={channel === 'whatsapp'} onChange={() => setChannel('whatsapp')} className="text-green-600" />
-                    <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
-                    <span className="font-medium text-sm">WhatsApp</span>
-                  </label>
-                </div>
-              </div>
-
-              <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700 py-6 text-lg">
+              <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700 py-6 text-lg mt-4">
                 {loading ? "Sending OTP..." : "Send Verification Code"}
               </Button>
             </form>
@@ -219,12 +238,30 @@ const RegistrationWizard = () => {
                   value={otp} onChange={(e) => setOtp(e.target.value)} required 
                   className="text-center text-2xl tracking-widest py-6" maxLength={6} disabled={loading}
                 />
-                <p className="text-xs text-gray-500 text-center">
-                  Code sent to {phone}. <span className="text-green-600 font-medium cursor-pointer" onClick={() => setStep(1)}>Edit number</span>
+                <p className="text-xs text-gray-500 text-center mt-2">
+                  Code sent via <span className="font-bold text-gray-700">{channel === 'whatsapp' ? 'WhatsApp' : 'SMS'}</span> to {phone}. <span className="text-green-600 font-medium cursor-pointer ml-1" onClick={() => setStep(1)}>Edit number</span>
                 </p>
                 {errorMsg && <p className="text-sm text-red-500 text-center">{errorMsg}</p>}
+                
+                <div className="pt-2 text-center">
+                  {resendTimer > 0 ? (
+                    <p className="text-sm text-gray-400">
+                      Didn't get the code? Resend via SMS in {resendTimer}s
+                    </p>
+                  ) : (
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={handleResendSms} 
+                      disabled={loading}
+                      className="w-full text-sm mt-2 border-gray-300 hover:bg-gray-50 text-gray-700"
+                    >
+                      Resend via SMS
+                    </Button>
+                  )}
+                </div>
               </div>
-              <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700 py-6 text-lg">
+              <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700 py-6 text-lg mt-2">
                 {loading ? "Verifying..." : "Confirm Code"}
               </Button>
             </form>
