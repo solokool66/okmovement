@@ -30,13 +30,13 @@ export default function LiveCollation() {
           <Activity className="h-8 w-8" />
           Live PVT Collation Center
         </h2>
-        <p className="text-gray-500 mt-1">Parallel Vote Tabulation independently verified by OK Movement agents.</p>
+        <p className="text-gray-500 mt-1">Parallel Vote Tabulation independently verified by NDC agents.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-5">
         <Card className="border-t-4 border-t-green-600 shadow-sm bg-green-50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold text-green-800">OK Movement</CardTitle>
+            <CardTitle className="text-sm font-bold text-green-800">NDC</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-green-700">{(data.summary.totalOk || 0).toLocaleString()}</div>
@@ -95,7 +95,7 @@ export default function LiveCollation() {
               <thead className="text-xs text-gray-700 uppercase bg-gray-100">
                 <tr>
                   <th className="px-6 py-4">Polling Unit</th>
-                  <th className="px-6 py-4 text-green-700">OK Votes</th>
+                  <th className="px-6 py-4 text-green-700">NDC Votes</th>
                   <th className="px-6 py-4 text-red-700">{data.summary.oppAName || "Opponent A"}</th>
                   <th className="px-6 py-4 text-blue-700">{data.summary.oppBName || "Opponent B"}</th>
                   <th className="px-6 py-4 text-gray-700">{data.summary.oppCName || "Opponent C"}</th>
@@ -159,7 +159,7 @@ export default function LiveCollation() {
                 <p className="text-sm font-bold text-gray-500 uppercase mb-3">Vote Breakdown</p>
                 <div className="grid gap-3">
                   <div className="flex justify-between items-center p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <span className="font-bold text-green-800">OK Movement</span>
+                    <span className="font-bold text-green-800">NDC</span>
                     <span className="font-black text-green-700 text-xl">{selectedResult.okVotes}</span>
                   </div>
                   {selectedResult.opponents && Array.isArray(selectedResult.opponents) ? (
