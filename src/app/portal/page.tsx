@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 
 const PARTY_LIST = [
   { id: "APC", label: "APC - Bola Tinubu / Kashim Shettima" },
-  { id: "ADC", label: "ADC - Atiku Abubakar / Chibuike Rotimi Amaechi" },
   { id: "LP", label: "LP - Sunday Chibuzo Okereke / Hajja Bintu Konto" },
   { id: "PDP", label: "PDP - Sandy Ojang Onor / Umaru Babangida" },
   { id: "AA", label: "AA - Rufai Adekunle Omo-Aje / Shehu Hussaini" },
