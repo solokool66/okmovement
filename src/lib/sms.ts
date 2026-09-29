@@ -1,6 +1,19 @@
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
+
 export async function sendSMS(phone: string, message: string, channel: string = "sms") {
-  const provider = process.env.PRIMARY_SMS_PROVIDER || "SMART_SMS";
-  const waProvider = process.env.WHATSAPP_PROVIDER || "FREE_WHATSAPP";
+  let provider = process.env.PRIMARY_SMS_PROVIDER || "SMART_SMS";
+  let waProvider = process.env.WHATSAPP_PROVIDER || "FREE_WHATSAPP";
+
+  try {
+    const dbSettings = await prisma.setting.findMany();
+    dbSettings.forEach(s => {
+      if (s.key === 'primarySmsProvider') provider = s.value;
+      if (s.key === 'primaryWhatsAppProvider') waProvider = s.value;
+    });
+  } catch (e) {
+    console.log("Failed to load settings from DB, using env variables", e);
+  }
 
   // If WhatsApp is requested, route to the configured WhatsApp provider
   if (channel === "whatsapp") {
@@ -28,8 +41,8 @@ async function sendViaSmartSMS(phone: string, message: string) {
   if (sender === "OK_MOVEMENT") sender = "OKMovement"; // Bypass MTN spam filter
 
   if (!token || token === "your_smart_sms_token") {
-    console.warn("[MOCK SMS - SMART_SMS] To:", phone, "Message:", message);
-    return { success: true, mock: true };
+    console.error("[SMART_SMS ERROR] Token is missing or invalid in environment variables.");
+    return { success: false, provider: "SMART_SMS", error: "SMS Provider misconfigured on server" };
   }
 
   try {
@@ -62,8 +75,8 @@ async function sendViaTermii(phone: string, message: string, channelType: string
   const sender = process.env.TERMII_SENDER_ID || "N-Alert";
 
   if (!apiKey || apiKey === "your_termii_api_key") {
-    console.warn(`[MOCK ${channelType.toUpperCase()} - TERMII] To:`, phone, "Message:", message);
-    return { success: true, mock: true };
+    console.error(`[TERMII ERROR] API Key missing.`);
+    return { success: false, provider: "TERMII", error: "Termii API Key missing" };
   }
 
   // Termii requires international format without the + sign
@@ -92,19 +105,15 @@ async function sendViaTermii(phone: string, message: string, channelType: string
 
     const data = await response.json();
     
-    // If Termii fails due to unapproved sender IDs or unverified WABA, but we are in dev/testing, fallback to mock!
     if (data.status === 422 || data.message !== "Successfully Sent") {
-      console.warn(`[TERMII REJECTED] Termii blocked the message: ${data.message || data.error}`);
-      console.warn(`[FALLBACK TO MOCK] To:`, phone, "Message:", message);
-      return { success: true, mock: true, warning: data.message };
+      console.error(`[TERMII REJECTED] Termii blocked the message:`, data);
+      return { success: false, provider: "TERMII", error: data.message || data.error };
     }
 
     return { success: true, provider: "TERMII", data };
   } catch (error) {
     console.error("Termii Error:", error);
-    // Fallback to mock on network error so testing isn't blocked
-    console.warn(`[FALLBACK TO MOCK] To:`, phone, "Message:", message);
-    return { success: true, mock: true, error };
+    return { success: false, provider: "TERMII", error: "Network error with Termii" };
   }
 }
 
@@ -113,8 +122,8 @@ async function sendViaSendchamp(phone: string, message: string) {
   const sender = process.env.SENDCHAMP_SENDER || "Sendchamp";
 
   if (!apiKey || apiKey === "your_sendchamp_api_key") {
-    console.warn(`[MOCK WHATSAPP - SENDCHAMP] To:`, phone, "Message:", message);
-    return { success: true, mock: true };
+    console.error(`[SENDCHAMP ERROR] API Key missing.`);
+    return { success: false, provider: "SENDCHAMP", error: "Sendchamp API Key missing" };
   }
 
   // Ensure 234 format without +
@@ -143,17 +152,15 @@ async function sendViaSendchamp(phone: string, message: string) {
 
     const data = await response.json();
     
-    // Check if successful
     if (data.status === "success" || data.code === "200") {
       return { success: true, provider: "SENDCHAMP", data };
     } else {
-      console.warn(`[SENDCHAMP REJECTED] ${data.message || data.error}`);
-      console.warn(`[FALLBACK TO MOCK] To:`, phone, "Message:", message);
-      return { success: true, mock: true, warning: data.message };
+      console.error(`[SENDCHAMP REJECTED] ${data.message || data.error}`);
+      return { success: false, provider: "SENDCHAMP", error: data.message || data.error };
     }
   } catch (error) {
     console.error("Sendchamp Error:", error);
-    return { success: true, mock: true, error };
+    return { success: false, provider: "SENDCHAMP", error: "Network error with Sendchamp" };
   }
 }
 
@@ -173,12 +180,11 @@ async function sendViaFreeWhatsApp(phone: string, message: string) {
     if (data.success) {
       return { success: true, provider: "FREE_WHATSAPP", data };
     } else {
-      console.warn(`[FREE WHATSAPP ERROR] ${data.error}`);
-      return { success: true, mock: true, warning: data.error };
+      console.error(`[FREE WHATSAPP ERROR] ${data.error}`);
+      return { success: false, provider: "FREE_WHATSAPP", error: data.error };
     }
   } catch (error) {
-    console.warn("[FREE WHATSAPP SERVER DOWN] Is the microservice running on port 3005?");
-    console.warn(`[FALLBACK TO MOCK] To:`, phone, "Message:", message);
-    return { success: true, mock: true, error };
+    console.error("[FREE WHATSAPP SERVER DOWN] Is the microservice running on port 3005?");
+    return { success: false, provider: "FREE_WHATSAPP", error: "Network error with Free WhatsApp microservice" };
   }
 }
