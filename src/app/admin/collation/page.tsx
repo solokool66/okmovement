@@ -9,6 +9,7 @@ export default function LiveCollation() {
   const [loading, setLoading] = useState(true);
   const [selectedResult, setSelectedResult] = useState<any>(null);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [showAllTotals, setShowAllTotals] = useState(false);
 
   useEffect(() => {
     fetch('/api/results')
@@ -23,14 +24,46 @@ export default function LiveCollation() {
   const totalVotesCast = (data.summary.totalOk || 0) + (data.summary.totalOppA || 0) + (data.summary.totalOppB || 0) + (data.summary.totalOppC || 0);
   const getPercentage = (votes: number) => totalVotesCast > 0 ? ((votes / totalVotesCast) * 100).toFixed(1) : "0.0";
 
+  // Calculate totals for ALL parties submitted across all results
+  const allTotals: Record<string, number> = { "NDC": data.summary.totalOk || 0 };
+  let grandTotal = data.summary.totalOk || 0;
+  
+  data.results.forEach((r: any) => {
+    if (r.opponents && Array.isArray(r.opponents)) {
+      r.opponents.forEach((opp: any) => {
+        const name = opp.name || "Unknown";
+        if (!allTotals[name]) allTotals[name] = 0;
+        const v = Number(opp.votes) || 0;
+        allTotals[name] += v;
+        grandTotal += v;
+      });
+    } else {
+      const oppA = data.summary.oppAName || "Opponent A";
+      const oppB = data.summary.oppBName || "Opponent B";
+      if (!allTotals[oppA]) allTotals[oppA] = 0;
+      if (!allTotals[oppB]) allTotals[oppB] = 0;
+      allTotals[oppA] += (r.oppAVotes || 0);
+      allTotals[oppB] += (r.oppBVotes || 0);
+      grandTotal += (r.oppAVotes || 0) + (r.oppBVotes || 0);
+    }
+  });
+
   return (
     <div className="p-8 space-y-8 bg-gray-50 min-h-screen">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-indigo-900 flex items-center gap-3">
-          <Activity className="h-8 w-8" />
-          Live PVT Collation Center
-        </h2>
-        <p className="text-gray-500 mt-1">Parallel Vote Tabulation independently verified by NDC agents.</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-indigo-900 flex items-center gap-3">
+            <Activity className="h-8 w-8" />
+            Live PVT Collation Center
+          </h2>
+          <p className="text-gray-500 mt-1">Parallel Vote Tabulation independently verified by NDC agents.</p>
+        </div>
+        <button 
+          onClick={() => setShowAllTotals(true)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow"
+        >
+          View All Party Totals
+        </button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-5">
@@ -200,6 +233,36 @@ export default function LiveCollation() {
                     No image was attached to this submission.
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* All Party Totals Modal */}
+      {showAllTotals && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto relative">
+            <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+              <h3 className="text-xl font-bold text-gray-900">All Party Totals</h3>
+              <button onClick={() => setShowAllTotals(false)} className="text-gray-500 hover:text-gray-800">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm font-bold text-gray-500 uppercase mb-4">Total Votes Across All PUs</p>
+              <div className="grid gap-3">
+                {Object.entries(allTotals)
+                  .sort((a, b) => b[1] - a[1]) // sort descending by votes
+                  .map(([party, votes], i) => (
+                    <div key={i} className={`flex justify-between items-center p-3 border rounded-lg ${party === 'NDC' ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+                      <span className={`font-bold ${party === 'NDC' ? 'text-green-800' : 'text-gray-800'}`}>{party}</span>
+                      <div className="text-right">
+                        <span className={`font-black text-xl ${party === 'NDC' ? 'text-green-700' : 'text-gray-700'}`}>{votes.toLocaleString()}</span>
+                        <p className="text-xs font-bold text-gray-500 mt-1">{grandTotal > 0 ? ((votes / grandTotal) * 100).toFixed(1) : "0.0"}%</p>
+                      </div>
+                    </div>
+                ))}
               </div>
             </div>
           </div>
