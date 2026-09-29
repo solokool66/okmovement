@@ -45,6 +45,10 @@ export async function GET(request: Request, props: { params: Promise<{ phone: st
       }
     }
 
+    const hasResult = await prisma.result.findFirst({
+      where: { phone: agent.phone }
+    });
+
     const enrichedAgent = {
       fullName: agent.fullName,
       phone: agent.phone,
@@ -58,7 +62,8 @@ export async function GET(request: Request, props: { params: Promise<{ phone: st
       puName,
       status: agent.isVerified ? "Verified" : "Pending",
       registeredAt: agent.createdAt,
-      role: agent.role
+      role: agent.role,
+      hasSubmittedResult: !!hasResult
     };
 
     return NextResponse.json(enrichedAgent);

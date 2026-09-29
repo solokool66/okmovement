@@ -79,20 +79,30 @@ export async function GET() {
     let totalOk = 0;
     let totalOppA = 0;
     let totalOppB = 0;
+    let totalOppC = 0;
     let oppAName = "Opponent A";
     let oppBName = "Opponent B";
+    let oppCName = "Opponent C";
     let totalPUsSubmitted = results.length;
 
-    const sampleWithOpp = results.find(r => r.opponents && Array.isArray(r.opponents) && r.opponents.length >= 2);
+    const sampleWithOpp = results.find(r => r.opponents && Array.isArray(r.opponents) && r.opponents.length >= 3);
     if (sampleWithOpp) {
       oppAName = (sampleWithOpp.opponents as any)[0].name;
       oppBName = (sampleWithOpp.opponents as any)[1].name;
+      oppCName = (sampleWithOpp.opponents as any)[2].name;
+    } else {
+      const fallbackSample = results.find(r => r.opponents && Array.isArray(r.opponents) && r.opponents.length >= 2);
+      if (fallbackSample) {
+        oppAName = (fallbackSample.opponents as any)[0].name;
+        oppBName = (fallbackSample.opponents as any)[1].name;
+      }
     }
 
     const enrichedResults = results.map((r: any) => {
       totalOk += r.okVotes || 0;
       totalOppA += r.opponents && Array.isArray(r.opponents) && r.opponents[0] ? Number(r.opponents[0].votes) || 0 : (r.oppAVotes || 0);
       totalOppB += r.opponents && Array.isArray(r.opponents) && r.opponents[1] ? Number(r.opponents[1].votes) || 0 : (r.oppBVotes || 0);
+      totalOppC += r.opponents && Array.isArray(r.opponents) && r.opponents[2] ? Number(r.opponents[2].votes) || 0 : 0;
 
       let puName = r.puId;
       const stateObj = statesData.find((s: any) => s.state.toLowerCase() === r.stateId);
@@ -117,7 +127,7 @@ export async function GET() {
     });
 
     return NextResponse.json({
-      summary: { totalOk, totalOppA, totalOppB, totalPUsSubmitted, oppAName, oppBName },
+      summary: { totalOk, totalOppA, totalOppB, totalOppC, totalPUsSubmitted, oppAName, oppBName, oppCName },
       results: enrichedResults
     });
   } catch (err) {

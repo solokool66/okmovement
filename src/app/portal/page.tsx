@@ -164,6 +164,7 @@ export default function AgentPortal() {
         { name: "LP", votes: "" }
       ]);
       setPvtImage(null);
+      setAgent({ ...agent, hasSubmittedResult: true });
     } catch(err: any) { 
       alert("Failed to upload result: " + (err.message || "Unknown error")); 
     }
@@ -209,9 +210,15 @@ export default function AgentPortal() {
             <Button onClick={() => {setShowSos(!showSos); setShowPvt(false)}} className="w-full bg-red-600 hover:bg-red-700 h-12 text-sm font-bold shadow-md">
               🚨 REPORT INCIDENT (SOS)
             </Button>
-            <Button onClick={() => {setShowPvt(!showPvt); setShowSos(false)}} className="w-full bg-indigo-600 hover:bg-indigo-700 h-12 text-sm font-bold shadow-md">
-              📊 UPLOAD PU RESULT
-            </Button>
+            {agent.hasSubmittedResult ? (
+              <Button disabled className="w-full bg-gray-400 h-12 text-sm font-bold shadow-md cursor-not-allowed">
+                ✅ RESULT SUBMITTED
+              </Button>
+            ) : (
+              <Button onClick={() => {setShowPvt(!showPvt); setShowSos(false)}} className="w-full bg-indigo-600 hover:bg-indigo-700 h-12 text-sm font-bold shadow-md">
+                📊 UPLOAD PU RESULT
+              </Button>
+            )}
           </div>
 
           {/* SOS FORM */}

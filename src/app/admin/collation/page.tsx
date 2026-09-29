@@ -19,7 +19,9 @@ export default function LiveCollation() {
   if (loading) return <div className="p-8">Loading Live Results...</div>;
   if (!data || data.error) return <div className="p-8 text-red-500">Failed to load results</div>;
 
-  const totalVotesCast = data.summary.totalOk + data.summary.totalOppA + data.summary.totalOppB;
+  const [isZoomed, setIsZoomed] = useState(false);
+  
+  const totalVotesCast = data.summary.totalOk + data.summary.totalOppA + data.summary.totalOppB + data.summary.totalOppC;
   const getPercentage = (votes: number) => totalVotesCast > 0 ? ((votes / totalVotesCast) * 100).toFixed(1) : "0.0";
 
   return (
@@ -32,13 +34,13 @@ export default function LiveCollation() {
         <p className="text-gray-500 mt-1">Parallel Vote Tabulation independently verified by OK Movement agents.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card className="border-t-4 border-t-green-600 shadow-sm bg-green-50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-bold text-green-800">OK Movement</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-black text-green-700">{data.summary.totalOk.toLocaleString()}</div>
+            <div className="text-3xl font-black text-green-700">{data.summary.totalOk.toLocaleString()}</div>
             <p className="text-sm font-bold text-green-600 mt-1">{getPercentage(data.summary.totalOk)}%</p>
           </CardContent>
         </Card>
@@ -48,18 +50,28 @@ export default function LiveCollation() {
             <CardTitle className="text-sm font-bold text-red-800">{data.summary.oppAName}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-black text-red-700">{data.summary.totalOppA.toLocaleString()}</div>
+            <div className="text-3xl font-black text-red-700">{data.summary.totalOppA.toLocaleString()}</div>
             <p className="text-sm font-bold text-red-600 mt-1">{getPercentage(data.summary.totalOppA)}%</p>
           </CardContent>
         </Card>
 
-        <Card className="border-t-4 border-t-gray-600 shadow-sm bg-gray-50">
+        <Card className="border-t-4 border-t-blue-600 shadow-sm bg-blue-50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold text-gray-800">{data.summary.oppBName}</CardTitle>
+            <CardTitle className="text-sm font-bold text-blue-800">{data.summary.oppBName}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-black text-gray-700">{data.summary.totalOppB.toLocaleString()}</div>
-            <p className="text-sm font-bold text-gray-600 mt-1">{getPercentage(data.summary.totalOppB)}%</p>
+            <div className="text-3xl font-black text-blue-700">{data.summary.totalOppB.toLocaleString()}</div>
+            <p className="text-sm font-bold text-blue-600 mt-1">{getPercentage(data.summary.totalOppB)}%</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-t-4 border-t-gray-600 shadow-sm bg-gray-50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-bold text-gray-800">{data.summary.oppCName}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-black text-gray-700">{data.summary.totalOppC.toLocaleString()}</div>
+            <p className="text-sm font-bold text-gray-600 mt-1">{getPercentage(data.summary.totalOppC)}%</p>
           </CardContent>
         </Card>
 
@@ -68,7 +80,7 @@ export default function LiveCollation() {
             <CardTitle className="text-sm font-bold text-indigo-800">PUs Submitted</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-black text-indigo-900">{data.summary.totalPUsSubmitted.toLocaleString()}</div>
+            <div className="text-3xl font-black text-indigo-900">{data.summary.totalPUsSubmitted.toLocaleString()}</div>
             <p className="text-sm font-bold text-indigo-600 mt-1">Total PUs Verified</p>
           </CardContent>
         </Card>
@@ -86,14 +98,15 @@ export default function LiveCollation() {
                   <th className="px-6 py-4">Polling Unit</th>
                   <th className="px-6 py-4 text-green-700">OK Votes</th>
                   <th className="px-6 py-4 text-red-700">{data.summary.oppAName}</th>
-                  <th className="px-6 py-4 text-gray-700">{data.summary.oppBName}</th>
+                  <th className="px-6 py-4 text-blue-700">{data.summary.oppBName}</th>
+                  <th className="px-6 py-4 text-gray-700">{data.summary.oppCName}</th>
                   <th className="px-6 py-4">Time</th>
                   <th className="px-6 py-4 text-right">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {data.results.length === 0 ? (
-                  <tr><td colSpan={6} className="text-center py-6">No results submitted yet.</td></tr>
+                  <tr><td colSpan={7} className="text-center py-6">No results submitted yet.</td></tr>
                 ) : (
                   data.results.slice().map((r: any, idx: number) => (
                     <tr key={idx} className="bg-white border-b hover:bg-gray-50 transition-colors">
@@ -102,8 +115,11 @@ export default function LiveCollation() {
                       <td className="px-6 py-4 font-bold text-red-600">
                         {r.opponents && r.opponents[0] ? r.opponents[0].votes : r.oppAVotes}
                       </td>
-                      <td className="px-6 py-4 font-bold text-gray-600">
+                      <td className="px-6 py-4 font-bold text-blue-600">
                         {r.opponents && r.opponents[1] ? r.opponents[1].votes : r.oppBVotes}
+                      </td>
+                      <td className="px-6 py-4 font-bold text-gray-600">
+                        {r.opponents && r.opponents[2] ? r.opponents[2].votes : 0}
                       </td>
                       <td className="px-6 py-4 text-xs">{new Date(r.timestamp).toLocaleTimeString()}</td>
                       <td className="px-6 py-4 text-right">
@@ -126,10 +142,10 @@ export default function LiveCollation() {
       {/* Result Details Modal */}
       {selectedResult && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative">
+            <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
               <h3 className="text-xl font-bold text-gray-900">Result Details</h3>
-              <button onClick={() => setSelectedResult(null)} className="text-gray-500 hover:text-gray-800">
+              <button onClick={() => {setSelectedResult(null); setIsZoomed(false);}} className="text-gray-500 hover:text-gray-800">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>
             </div>
@@ -172,7 +188,14 @@ export default function LiveCollation() {
               <div>
                 <p className="text-sm font-bold text-gray-500 uppercase mb-3">Result Sheet Image</p>
                 {selectedResult.image ? (
-                  <img src={selectedResult.image} alt="Result Sheet" className="w-full rounded-lg border shadow-sm" />
+                  <div className={`cursor-pointer transition-all duration-300 ${isZoomed ? 'fixed inset-0 z-[100] bg-black/90 p-4 flex items-center justify-center' : ''}`} onClick={() => setIsZoomed(!isZoomed)}>
+                    <img 
+                      src={selectedResult.image} 
+                      alt="Result Sheet" 
+                      className={`${isZoomed ? 'max-w-full max-h-full object-contain' : 'w-full rounded-lg border shadow-sm hover:opacity-90'}`} 
+                    />
+                    {isZoomed && <p className="absolute bottom-10 text-white font-medium bg-black/50 px-4 py-2 rounded-full">Click anywhere to close zoom</p>}
+                  </div>
                 ) : (
                   <div className="p-8 text-center bg-gray-50 border rounded-lg text-gray-500">
                     No image was attached to this submission.
