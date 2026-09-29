@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: "OTP sent successfully" });
     } else {
       console.error("SMS Provider Failure:", result);
-      return NextResponse.json({ error: "Failed to send OTP via SMS provider" }, { status: 500 });
+      return NextResponse.json({ error: result.error || "Failed to send OTP via SMS provider" }, { status: 500 });
     }
 
   } catch (error) {

@@ -62,10 +62,15 @@ async function sendViaSmartSMS(phone: string, message: string) {
     });
 
     const data = await response.json();
-    return { success: data.code === "1000" || data.successful === true, provider: "SMART_SMS", data };
+    const isSuccess = data.code === "1000" || data.successful === true;
+    if (!isSuccess) {
+      console.error("[SMART_SMS API REJECTED]", data);
+      return { success: false, provider: "SMART_SMS", error: data.comment || `SmartSMS Error Code: ${data.code}` };
+    }
+    return { success: true, provider: "SMART_SMS", data };
   } catch (error) {
     console.error("Smart SMS Error:", error);
-    return { success: false, provider: "SMART_SMS", error };
+    return { success: false, provider: "SMART_SMS", error: error instanceof Error ? error.message : String(error) };
   }
 }
 
