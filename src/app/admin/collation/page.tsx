@@ -11,12 +11,30 @@ export default function LiveCollation() {
   const [isZoomed, setIsZoomed] = useState(false);
   const [showAllTotals, setShowAllTotals] = useState(false);
 
+  const [modalImage, setModalImage] = useState<string | null>(null);
+  const [loadingImage, setLoadingImage] = useState(false);
+
   useEffect(() => {
     fetch('/api/results')
       .then(res => res.json())
       .then(res => { setData(res); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (selectedResult && !selectedResult.imageLoaded) {
+      setLoadingImage(true);
+      fetch(`/api/results/${selectedResult.id}`)
+        .then(res => res.json())
+        .then(res => {
+          setModalImage(res.image || null);
+          setLoadingImage(false);
+        })
+        .catch(() => setLoadingImage(false));
+    } else {
+      setModalImage(null);
+    }
+  }, [selectedResult]);
 
   if (loading) return <div className="p-8">Loading Live Results...</div>;
   if (!data || data.error) return <div className="p-8 text-red-500">Failed to load results</div>;
@@ -47,24 +65,6 @@ export default function LiveCollation() {
       grandTotal += (r.oppAVotes || 0) + (r.oppBVotes || 0);
     }
   });
-
-  const [modalImage, setModalImage] = useState<string | null>(null);
-  const [loadingImage, setLoadingImage] = useState(false);
-
-  useEffect(() => {
-    if (selectedResult && !selectedResult.imageLoaded) {
-      setLoadingImage(true);
-      fetch(`/api/results/${selectedResult.id}`)
-        .then(res => res.json())
-        .then(data => {
-          setModalImage(data.image || null);
-          setLoadingImage(false);
-        })
-        .catch(() => setLoadingImage(false));
-    } else {
-      setModalImage(null);
-    }
-  }, [selectedResult]);
 
   return (
     <div className="p-8 space-y-8 bg-gray-50 min-h-screen">
