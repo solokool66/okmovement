@@ -44,7 +44,7 @@ export default function LiveCollation() {
 
         <Card className="border-t-4 border-t-red-600 shadow-sm bg-red-50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold text-red-800">Opponent A</CardTitle>
+            <CardTitle className="text-sm font-bold text-red-800">{data.summary.oppAName}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-4xl font-black text-red-700">{data.summary.totalOppA.toLocaleString()}</div>
@@ -54,7 +54,7 @@ export default function LiveCollation() {
 
         <Card className="border-t-4 border-t-gray-600 shadow-sm bg-gray-50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold text-gray-800">Opponent B</CardTitle>
+            <CardTitle className="text-sm font-bold text-gray-800">{data.summary.oppBName}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-4xl font-black text-gray-700">{data.summary.totalOppB.toLocaleString()}</div>
@@ -84,8 +84,8 @@ export default function LiveCollation() {
                 <tr>
                   <th className="px-6 py-4">Polling Unit</th>
                   <th className="px-6 py-4 text-green-700">OK Votes</th>
-                  <th className="px-6 py-4 text-red-700">OppA Votes</th>
-                  <th className="px-6 py-4 text-gray-700">OppB Votes</th>
+                  <th className="px-6 py-4 text-red-700">{data.summary.oppAName}</th>
+                  <th className="px-6 py-4 text-gray-700">{data.summary.oppBName}</th>
                   <th className="px-6 py-4">Time</th>
                 </tr>
               </thead>
@@ -93,12 +93,16 @@ export default function LiveCollation() {
                 {data.results.length === 0 ? (
                   <tr><td colSpan={5} className="text-center py-6">No results submitted yet.</td></tr>
                 ) : (
-                  data.results.slice().reverse().map((r: any, idx: number) => (
+                  data.results.slice().map((r: any, idx: number) => (
                     <tr key={idx} className="bg-white border-b hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-gray-900">{r.puId}</td>
+                      <td className="px-6 py-4 font-medium text-gray-900">{r.puName}</td>
                       <td className="px-6 py-4 font-bold text-green-600">{r.okVotes}</td>
-                      <td className="px-6 py-4 font-bold text-red-600">{r.oppAVotes}</td>
-                      <td className="px-6 py-4 font-bold text-gray-600">{r.oppBVotes}</td>
+                      <td className="px-6 py-4 font-bold text-red-600">
+                        {r.opponents && r.opponents[0] ? r.opponents[0].votes : r.oppAVotes}
+                      </td>
+                      <td className="px-6 py-4 font-bold text-gray-600">
+                        {r.opponents && r.opponents[1] ? r.opponents[1].votes : r.oppBVotes}
+                      </td>
                       <td className="px-6 py-4 text-xs">{new Date(r.timestamp).toLocaleTimeString()}</td>
                     </tr>
                   ))

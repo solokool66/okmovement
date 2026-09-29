@@ -68,23 +68,60 @@ export async function GET() {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Tally up nationwide totals
+    const fs = require('fs');
+    const path = require('path');
+    const inecPath = path.join(process.cwd(), 'prisma', 'inec_data.json');
+    let statesData: any[] = [];
+    if (fs.existsSync(inecPath)) {
+      statesData = JSON.parse(fs.readFileSync(inecPath, 'utf-8'));
+    }
+
     let totalOk = 0;
     let totalOppA = 0;
     let totalOppB = 0;
+    let oppAName = "Opponent A";
+    let oppBName = "Opponent B";
     let totalPUsSubmitted = results.length;
 
-    results.forEach((r: any) => {
+    const sampleWithOpp = results.find(r => r.opponents && Array.isArray(r.opponents) && r.opponents.length >= 2);
+    if (sampleWithOpp) {
+      oppAName = (sampleWithOpp.opponents as any)[0].name;
+      oppBName = (sampleWithOpp.opponents as any)[1].name;
+    }
+
+    const enrichedResults = results.map((r: any) => {
       totalOk += r.okVotes || 0;
       totalOppA += r.opponents && Array.isArray(r.opponents) && r.opponents[0] ? Number(r.opponents[0].votes) || 0 : (r.oppAVotes || 0);
       totalOppB += r.opponents && Array.isArray(r.opponents) && r.opponents[1] ? Number(r.opponents[1].votes) || 0 : (r.oppBVotes || 0);
+
+      let puName = r.puId;
+      const stateObj = statesData.find((s: any) => s.state.toLowerCase() === r.stateId);
+      if (stateObj) {
+        const lgaObj = stateObj.lgas.find((l: any) => l.lga.toLowerCase().replace(/[\s/]/g, '-') === r.lgaId);
+        if (lgaObj) {
+          const wardObj = lgaObj.wards.find((w: any) => w.ward.toLowerCase().replace(/[\s/]/g, '-') === r.wardId);
+          if (wardObj) {
+            const puObj = wardObj.polling_units.find((p: any) => p.code === r.puId);
+            if (puObj) {
+              puName = `${puObj.name} (${puObj.code})`;
+            }
+          }
+        }
+      }
+
+      return {
+        ...r,
+        puName,
+        timestamp: r.createdAt
+      };
     });
 
     return NextResponse.json({
-      summary: { totalOk, totalOppA, totalOppB, totalPUsSubmitted },
-      results
+      summary: { totalOk, totalOppA, totalOppB, totalPUsSubmitted, oppAName, oppBName },
+      results: enrichedResults
     });
   } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: "Failed to load results" }, { status: 500 });
   }
 }
